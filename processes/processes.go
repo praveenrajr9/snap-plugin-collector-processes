@@ -103,9 +103,36 @@ var (
 			description: "Number of process instances",
 			unit:        "",
 		},
+                "ps_pagefaults_min_per_itv": label{
+                        description: "The number of minor faults the process has made per interval",
+                        unit:        "",
+                },
+                "ps_pagefaults_maj_per_itv": label{
+                        description: "The number of major faults the process has made per interval",
+                        unit:        "",
+                },
+                "ps_disk_ops_syscr_per_itv": label{
+                        description: "Attempt to count the number of read I/O operations per intelval",
+                        unit:        "",
+                },
+                "ps_disk_ops_syscw_per_itv": label{
+                        description: "Attempt to count the number of write I/O operations per interval",
+                        unit:        "",
+                },
+                "ps_disk_octets_rchar_per_itv": label{
+                        description: "The number of bytes which this task has caused to be read from storage per interval",
+                        unit:        "B",
+                },
+                "ps_disk_octets_wchar_per_itv": label{
+                        description: "The number of bytes which this task has caused, or shall cause to be written to disk",
+                        unit:        "B",
+                },
+
 	}
+        
 )
 
+var accumulated_prev = map[string]map[string]uint64{}
 // New returns instance of processes plugin
 func New() *procPlugin {
 	host, err := os.Hostname()
@@ -198,14 +225,21 @@ func (procPlg *procPlugin) CollectMetrics(metricTypes []plugin.MetricType) ([]pl
 		}
 	}
 
-	// accumulate stats
+	// accumulate stats 
+        // praveen make copy of accumulated stats to globally defined accumulated stats and name it as previous accumulated stats
+
 	accumulated := map[string]map[string]uint64{}
 	for procName, instances := range stats {
-		acc := setProcMetrics(instances)
+		acc := setProcMetrics(instances, procName)
 		accumulated[procName] = acc
+                                    
 	}
-
-	duplicatedStats := map[metricKey]struct{}{}
+        accumulated_prev = accumulated
+       // for procName, instances := range accumulated{
+        //	accumulated_prev[procName] = instances
+//	}
+        
+        duplicatedStats := map[metricKey]struct{}{}
 
 	// calculate metrics
 	for _, metricType := range metricTypes {
@@ -295,7 +329,7 @@ func (procPlg *procPlugin) CollectMetrics(metricTypes []plugin.MetricType) ([]pl
 	return metrics, nil
 }
 
-func setProcMetrics(instances []Proc) map[string]uint64 {
+func setProcMetrics(instances []Proc, procName string) map[string]uint64 {
 	procMetrics := map[string]uint64{}
 	for metricName, _ := range metricNames {
 		procMetrics[metricName] = 0
@@ -338,6 +372,19 @@ func setProcMetrics(instances []Proc) map[string]uint64 {
 		procMetrics["ps_disk_octets_wchar"] += instance.Io["wchar"]
 		procMetrics["ps_disk_ops_syscr"] += instance.Io["syscr"]
 		procMetrics["ps_disk_ops_syscw"] += instance.Io["syscw"]
+
+               if _,ok := accumulated_prev[procName];ok{
+
+       		         procMetrics["ps_pagefaults_min_per_itv"] = procMetrics["ps_pagefaults_min"] - accumulated_prev[procName]["ps_pagefaults_min"]
+               		 procMetrics["ps_pagefaults_maj_per_itv"] = procMetrics["ps_pagefaults_maj"] - accumulated_prev[procName]["ps_pagefaults_maj"]
+	                 procMetrics["ps_disk_octets_rchar_per_itv"] = procMetrics["ps_disk_octets_rchar"] - accumulated_prev[procName]["ps_disk_octets_rchar"]
+            	         procMetrics["ps_disk_octets_wchar_per_itv"] = procMetrics["ps_disk_octets_wchar"] - accumulated_prev[procName]["ps_disk_octets_wchar"]
+               		 procMetrics["ps_disk_ops_syscr_per_itv"] = procMetrics["ps_disk_ops_syscr"] - accumulated_prev[procName]["ps_disk_ops_syscr"]
+               		 procMetrics["ps_disk_ops_syscw_per_itv"] = procMetrics["ps_disk_ops_syscw"] - accumulated_prev[procName]["ps_disk_ops_syscw"]
+
+               }
+
+
 	}
 
 	return procMetrics
