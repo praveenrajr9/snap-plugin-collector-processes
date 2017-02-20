@@ -2,16 +2,19 @@
     "version": 1,
     "schedule": {
         "type": "simple",
-        "interval": "1s"
+        "interval": "10s",
+        "deadline": "10s"
     },
+    "max-failures": -1,
     "workflow": {
         "collect": {
             "metrics": {
-                "/intel/procfs/processes/*/ps_disk_ops_syscr": {},
-                "/intel/procfs/processes/*/ps_disk_ops_syscw": {},
-                "/intel/procfs/processes/running": {},
-                "/intel/procfs/processes/stopped": {},
-                "/intel/procfs/processes/waiting": {}
+              "/intel/procfs/processes/*/ps_disk_octets_rchar_per_itv": {},
+              "/intel/procfs/processes/*/ps_disk_octets_wchar_per_itv": {},
+              "/intel/procfs/processes/*/ps_disk_ops_syscr_per_itv":{},
+              "/intel/procfs/processes/*/ps_disk_ops_syscw_per_itv": {},
+              "/intel/procfs/processes/*/ps_pagefaults_maj_per_itv": {},
+              "/intel/procfs/processes/*/ps_pagefaults_min_per_itv": {}
             },
             "publish": [
 		{
